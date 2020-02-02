@@ -27,15 +27,21 @@ from object_detection.utils import visualization_utils as vis_util
 GENERATE_XML=True
 DRAW_OBJECT=False
 MOVE_FILE=False
-OUTPUT_FOLFER = "results"
+OUTPUT_FOLFER = "I:\\_selenium\\donedeal\\tests_02\\"
 #I:\_selenium\donedeal\bicycles_folder
 XML_FOLDES_OUTPUT = os.path.normpath(os.path.join(OUTPUT_FOLFER, "xml_out"))
-JPG_FOLDES_OUTPUT = os.path.normpath(os.path.join(OUTPUT_FOLFER, "jpg_out"))
-JPG_FOLDES_OUTPUT = os.path.normpath(os.path.join(OUTPUT_FOLFER, "I:\\_selenium\\donedeal\\road_bicycle_handlebar"))
-JPG_CLASS_NOT_FOUND_FOLDES_OUTPUT = os.path.normpath(os.path.join(OUTPUT_FOLFER, "I:\\_selenium\\donedeal\\not_road_bicycle_handlebar"))
+#JPG_FOLDES_OUTPUT = os.path.normpath(os.path.join(OUTPUT_FOLFER, "jpg_out"))
+JPG_FOLDES_OUTPUT_ROAD_BIKE = os.path.normpath(os.path.join(OUTPUT_FOLFER, "road_bike"))
+JPG_FOLDES_OUTPUT_BMX = os.path.normpath(os.path.join(OUTPUT_FOLFER, "bmx"))
+JPG_FOLDES_OUTPUT_PUSH_BIKE = os.path.normpath(os.path.join(OUTPUT_FOLFER, "push_bike"))
+JPG_FOLDES_OUTPUT_TRIATHLON_BIKE = os.path.normpath(os.path.join(OUTPUT_FOLFER, "triathlon_bike"))
+JPG_CLASS_NOT_FOUND_FOLDES_OUTPUT = os.path.normpath(os.path.join(OUTPUT_FOLFER, "others"))
 ##I:\_selenium\donedeal\bycicles_folder
 
-MOVED_CLAS_NAME = "road bicycles handlebar"
+MOVED_CLAS_NAME_ROAD_BIKE = "road_bike"
+MOVED_CLAS_NAME_BMX = "bmx"
+MOVED_CLAS_NAME_PUSH_BIKE = "push_bike"
+MOVED_CLAS_NAME_TRIATHLON_BIKE = "triathlon_bike"
 
 #PATH_TO_FROZEN_GRAPH = 'DETECTION_FROZEN_GRAPH/frozen_inference_graph_hand.pb'
 #PATH_TO_LABELS = 'workspace/training_demo/labels_custom_detect.pbtxt'
@@ -43,8 +49,12 @@ MOVED_CLAS_NAME = "road bicycles handlebar"
 
 #CLASS_OBJ = 'hand'
 PATH_TO_FROZEN_GRAPH = 'FROZEN_GRAPS/frozen_inference_graph_vio.pb'
+PATH_TO_FROZEN_GRAPH = 'E:\\common_public\\projects\\deep_learning\\FASTER_RCNN_RESNET_101\\custom_frozen_graphs\\frozen_inference_graph_btypes.pb'
+PATH_TO_FROZEN_GRAPH = os.path.normpath(PATH_TO_FROZEN_GRAPH) 
 ##PATH_TO_LABELS = 'workspace/training_demo/labels_custom_detect.pbtxt'
 PATH_TO_LABELS = 'FROZEN_GRAPS\labels_class_vio.pbtxt'
+PATH_TO_LABELS = 'E:\\common_public\\projects\\deep_learning\\FASTER_RCNN_RESNET_101\\custom_frozen_graphs\\labels_bicycle_types.pbtxt'
+PATH_TO_LABELS = os.path.normpath(PATH_TO_LABELS) 
 
 
 import ntpath
@@ -103,7 +113,7 @@ def detect_image(image_path,max_thresh,new_class):
     cnt = 0
 #    max_thresh = 0.60
         
-    
+    class_found=""
     # run inference
     with detection_graph.as_default():
         with tf.Session() as sess:
@@ -228,11 +238,16 @@ def detect_image(image_path,max_thresh,new_class):
                     for i in range(min(max_boxes_to_draw, boxes.shape[0])):
                         class_id = np.squeeze(classes).astype(np.int32)[i]
                         # process only the elements from class MOVED_CLAS_NAME
-                        if category_index[class_id]['name'] != MOVED_CLAS_NAME :
+                        #if category_index[class_id]['name'] != MOVED_CLAS_NAM_1 :
+                        #    # shutil.copy(my_file, JPG_CLASS_NOT_FOUND_FOLDES_OUTPUT)
+                        #    continue
+                        #found_bicycle = False
+                        if category_index[class_id]['name'] != JPG_FOLDES_OUTPUT_ROAD_BIKE :
                             # shutil.copy(my_file, JPG_CLASS_NOT_FOUND_FOLDES_OUTPUT)
-                            continue
-                        #found_bicycle = True
-                        if scores is None or scores[i] > min_score_thresh:
+                            class_found=category_index[class_id]['name']
+                            found_bicycle = True
+                        class_found = category_index[class_id]['name']
+                        if scores is None or scores[i] > min_score_thresh: #generates xml for each image
                             found_bicycle = True
                             # boxes[i] is the box which will be drawn
                             #print ("This box is gonna get used", boxes[i])
@@ -240,8 +255,8 @@ def detect_image(image_path,max_thresh,new_class):
                             child_obj = etree.Element('object')
                             # :: XML :: obj name
                             child = etree.Element('name')
-                            #child.text = category_index[class_id]['name']
-                            child.text = new_class
+                            child.text = category_index[class_id]['name']
+                            #child.text = new_class
                             child_obj.append(child)
                             # :: XML :: obj pose
                             child = etree.Element('pose')
@@ -279,7 +294,7 @@ def detect_image(image_path,max_thresh,new_class):
                             root.append(child_obj)
 
                 if GENERATE_XML:
-                    if found_bicycle == True :
+                    if found_bicycle == True: # class_found != "" :
                         max_score = "{:.2f}".format(scores[0])
                         max_class_id = np.squeeze(classes).astype(np.int32)[0]
                         max_class_label = "NODET"
@@ -287,7 +302,7 @@ def detect_image(image_path,max_thresh,new_class):
                             max_class_label = category_index[max_class_id]['name']
                         print('Max class Name %s\n' % max_class_label)
                         #current_file = img_paths[0]
-                        shutil.move(my_file, JPG_FOLDES_OUTPUT)
+                        #                        shutil.move(my_file, os.path.normpath(os.path.join(JPG_FOLDES_OUTPUT,"\\",class_found)))
 
                         # save the output image
                         img = img[..., ::-1]  # RGB to BGR
@@ -304,9 +319,30 @@ def detect_image(image_path,max_thresh,new_class):
                         et = etree.ElementTree(root)
                         #et.write(sys.stdout, pretty_print=True)
                         et.write(mynewxmlfile, pretty_print=True)
+                        if Path(my_file).is_file() and max_class_label != "":
+                            destination_path=os.path.join(OUTPUT_FOLFER, max_class_label, os.path.split(my_file)[-1])
+                            #if class_found == 'rear_suspension_frame':
+                            try:
+                                #destination_path = os.path.join(OUTPUT_FOLFER, class_found, os.path.split(my_file)[-1])
+                                shutil.move(my_file, destination_path)
+                            except shutil.Error as e:
+                                errors = e.args[0]
+                                src, dst, error_msg = errors[0]
+                                print("`Src: ", src)
+                                print("Dest:", dest)
+                                print("Error: ", error_msg)
 
-                if Path(my_file).is_file():
-                    shutil.move(my_file, os.path.join(JPG_CLASS_NOT_FOUND_FOLDES_OUTPUT, os.path.split(my_file)[-1]))
+                if Path(my_file).is_file() and class_found == "":
+                    #destination_path = os.path.join(OUTPUT_FOLFER, class_found, os.path.split(my_file)[-1])
+                    try:
+                        #destination_path = os.path.join(JPG_CLASS_NOT_FOUND_FOLDES_OUTPUT, os.path.split(my_file)[-1])
+                        shutil.move(my_file, destination_path)
+                    except shutil.Error as e:
+                        errors = e.args[0]
+                        src, dst, error_msg = errors[0]
+                        print("`Src: ", src)
+                        print("Dest:", dest)
+                        print("Error: ", error_msg)
                 cnt = cnt + 1
 
                 
@@ -318,13 +354,15 @@ def detect_image(image_path,max_thresh,new_class):
 def main():
     image_path = "images_test"
     max_thresh = 0.99    
-    new_class = "bicycle"
+    # new_class = "road_bike"
 #    if len(sys.argv) != 2:
 #        sys.exit('Usage: %s <image_path>' % sys.argv[0])
     if len(sys.argv) >= 3:
         new_class=sys.argv[1]
         image_path=sys.argv[2]
         image_path="I:\\_selenium\\donedeal\\bicycles_folder"
+        #image_path="I:\\_selenium\\donedeal\\road_bicycle_handlebar"
+        #image_path="I:\\_selenium\\donedeal\\not_road_bicycle_handlebar_"
     else:
         sys.exit('Usage: %s <new_class> <image_path>' % sys.argv[0])
         
